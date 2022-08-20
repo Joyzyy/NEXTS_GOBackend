@@ -13,5 +13,7 @@ func main() {
 	configs.Connect()
 	routes.ProductRoutes(router)
 
-	router.Run(":9999")
+	gin.SetMode(gin.ReleaseMode)
+
+	router.Run()
 }
