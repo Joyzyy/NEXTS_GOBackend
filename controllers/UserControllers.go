@@ -6,7 +6,6 @@ import (
 	"example/hello/models"
 	"example/hello/responses"
 	"example/hello/utils"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -182,16 +181,12 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		token, refreshToken, err := utils.Issue(userDB.Id.Hex())
+		token, _, err := utils.Issue(userDB.Id.Hex())
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 
-		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("token", token, 60*60*24, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, false)
-		g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, true)
-		fmt.Println("asd")
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
@@ -205,8 +200,6 @@ func Login() gin.HandlerFunc {
 
 func Logout() gin.HandlerFunc {
 	return func(g *gin.Context) {
-		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("refreshToken", "data", 0, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, true)
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
