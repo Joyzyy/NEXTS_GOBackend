@@ -12,7 +12,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://next-chakra-backend.onrender.com"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://next-chakra-dusky.vercel.app"},
 		AllowCredentials: true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type,access-control-allow-origin, access-control-allow-headers"},
@@ -21,6 +21,8 @@ func main() {
 	configs.Connect()
 	routes.ProductRoutes(router)
 	routes.UserRoutes(router)
+
+	gin.SetMode(gin.ReleaseMode)
 
 	router.Run()
 }
