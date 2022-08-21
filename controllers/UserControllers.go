@@ -188,6 +188,7 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
+		g.SetSameSite(http.SameSiteNoneMode)
 		g.SetCookie("token", token, 60*60*24, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, false)
 		g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, true)
 		fmt.Println("asd")
@@ -204,6 +205,7 @@ func Login() gin.HandlerFunc {
 
 func Logout() gin.HandlerFunc {
 	return func(g *gin.Context) {
+		g.SetSameSite(http.SameSiteNoneMode)
 		g.SetCookie("refreshToken", "data", 0, "/", "https://nextjs-app-charka-frontend.herokuapp.com", true, true)
 		g.JSON(
 			http.StatusOK,
