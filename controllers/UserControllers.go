@@ -188,7 +188,7 @@ func Login() gin.HandlerFunc {
 		}
 
 		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("backendToken", token, 1000*7, "/", "", true, false)
+		g.SetCookie("backendToken", token, 1000*7, "/", "nextjs-app-charka-frontend.herokuapp.com", true, true)
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
