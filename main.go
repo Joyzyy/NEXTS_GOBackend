@@ -12,7 +12,7 @@ func main() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://next-chakra-dusky.vercel.app"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://nextjs-app-charka-frontend.herokuapp.com"},
 		AllowCredentials: true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type,access-control-allow-origin, access-control-allow-headers"},
