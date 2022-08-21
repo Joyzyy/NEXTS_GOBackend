@@ -1,7 +1,7 @@
 module example/hello
 
-// +heroku goVersion go1.19
-go 1.19
+// +heroku goVersion go1.17
+go 1.17
 
 require (
 	github.com/gin-contrib/cors v1.4.0 // indirect
