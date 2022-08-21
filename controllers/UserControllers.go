@@ -189,8 +189,8 @@ func Login() gin.HandlerFunc {
 		}
 
 		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("token", token, 60*60*24, "/", "https://next-chakra-dusky.vercel.app", true, false)
-		g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", "https://next-chakra-dusky.vercel.app", true, true)
+		g.SetCookie("token", token, 60*60*24, "/", "vercel.app", true, false)
+		g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", "vercel.app", true, true)
 		fmt.Println("asd")
 		g.JSON(
 			http.StatusOK,
@@ -206,7 +206,7 @@ func Login() gin.HandlerFunc {
 func Logout() gin.HandlerFunc {
 	return func(g *gin.Context) {
 		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("refreshToken", "data", 0, "/", "https://next-chakra-dusky.vercel.app", true, true)
+		g.SetCookie("refreshToken", "data", 0, "/", ".vercel.app", true, true)
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
