@@ -187,6 +187,8 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
+		g.SetSameSite(http.SameSiteNoneMode)
+		g.SetCookie("backendToken", token, 1000*7, "/", "", true, false)
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
