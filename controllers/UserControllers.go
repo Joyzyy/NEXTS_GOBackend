@@ -6,6 +6,7 @@ import (
 	"example/hello/models"
 	"example/hello/responses"
 	"example/hello/utils"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -112,7 +113,12 @@ func Register() gin.HandlerFunc {
 			return
 		}
 
-		g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", "localhost", false, true)
+		/*
+			Setting cookies in production
+			g.SetCookie("token", token, 60*60*24*1), "/", ".", true, true);
+			g.SetCookie("refreshToken", refreshToken, 60*60*24*7, "/", ".", true, true)
+		*/
+		fmt.Println(refreshToken)
 		g.JSON(
 			http.StatusCreated,
 			responses.UserResponse{
@@ -187,8 +193,6 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		g.SetSameSite(http.SameSiteNoneMode)
-		g.SetCookie("backendToken", token, 1000*7, "/", "nextjs-app-charka-frontend.herokuapp.com", true, true)
 		g.JSON(
 			http.StatusOK,
 			responses.UserResponse{
@@ -207,7 +211,7 @@ func Logout() gin.HandlerFunc {
 			responses.UserResponse{
 				Status:  http.StatusOK,
 				Message: "OK",
-				Data:    map[string]interface{}{"data": "data"},
+				Data:    map[string]interface{}{"data": ""},
 			},
 		)
 	}

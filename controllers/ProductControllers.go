@@ -6,6 +6,7 @@ import (
 	"example/hello/models"
 	"example/hello/responses"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var productCollection *mongo.Collection = configs.GetDB(configs.CLIENT, "product", "productData")
@@ -50,6 +52,9 @@ func CreateProduct() gin.HandlerFunc {
 		newProduct := models.Product{
 			Id:          primitive.NewObjectID(),
 			Name:        product.Name,
+			TabType:     product.TabType,
+			Image:       product.Image,
+			Category:    product.Category,
 			Description: product.Description,
 			Price:       product.Price,
 			Quantity:    product.Quantity,
@@ -79,11 +84,133 @@ func CreateProduct() gin.HandlerFunc {
 	}
 }
 
+func GetAllProductsByCategory(g *gin.Context, ctx context.Context, products []models.Product, categoryQuery string) {
+	cursor, err := productCollection.Find(ctx, bson.M{"category": categoryQuery})
+	if err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	if err := cursor.All(ctx, &products); err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	g.JSON(
+		http.StatusOK,
+		responses.ProductResponse{
+			Status:  http.StatusOK,
+			Message: "OK",
+			Data:    map[string]interface{}{"data": products},
+		},
+	)
+}
+
+// @TODO: Sort by category + price + the others.
+
+func GetAllProductsByPrice(g *gin.Context, ctx context.Context, products []models.Product, priceQuery string) {
+	price, _ := strconv.Atoi(priceQuery)
+
+	var cursor *mongo.Cursor
+	var err error
+	var filter bson.M
+	var opts *options.FindOptions
+
+	if optsQuery := g.Query("order"); optsQuery != "" {
+		if optsQuery == "asc" {
+			opts = options.Find().SetSort(bson.M{"price": 1})
+		} else if optsQuery == "desc" {
+			opts = options.Find().SetSort(bson.M{"price": -1})
+		}
+	} else {
+		opts = nil
+	}
+
+	if priceTypeQuery := g.Query("type"); priceTypeQuery != "" {
+		if categoryQuery := g.Query("category"); categoryQuery != "" {
+			if priceTypeQuery == "gte" {
+				filter = bson.M{"price": bson.M{"$gte": price}, "category": categoryQuery}
+			} else if priceTypeQuery == "lte" {
+				filter = bson.M{"price": bson.M{"$lte": price}, "category": categoryQuery}
+			}
+		} else {
+			if priceTypeQuery == "gte" {
+				filter = bson.M{"price": bson.M{"$gte": price}}
+			} else if priceTypeQuery == "lte" {
+				filter = bson.M{"price": bson.M{"$lte": price}}
+			}
+		}
+	} else {
+		filter = bson.M{"price": price}
+	}
+
+	cursor, err = productCollection.Find(ctx, filter, opts)
+	if err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	if err := cursor.All(ctx, &products); err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	g.JSON(
+		http.StatusOK,
+		responses.ProductResponse{
+			Status:  http.StatusOK,
+			Message: "OK",
+			Data:    map[string]interface{}{"data": products},
+		},
+	)
+}
+
 func GetAllProducts() gin.HandlerFunc {
 	return func(g *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		var products []models.Product
+		//categoryQuery := g.Query("category")
+		priceQuery := g.Query("price")
 		defer cancel()
+
+		/*
+			if categoryQuery != "" {
+				GetAllProductsByCategory(g, ctx, products, categoryQuery)
+				return
+			}*/
+
+		if priceQuery != "" {
+			GetAllProductsByPrice(g, ctx, products, priceQuery)
+			return
+		}
 
 		cursor, err := productCollection.Find(ctx, models.Product{})
 		if err != nil {
@@ -131,6 +258,37 @@ func FindProductByID() gin.HandlerFunc {
 		objId, _ := primitive.ObjectIDFromHex(productID)
 
 		err := productCollection.FindOne(ctx, bson.M{"_id": objId}).Decode(&product)
+		if err != nil {
+			g.JSON(
+				http.StatusInternalServerError,
+				responses.ProductResponse{
+					Status:  http.StatusInternalServerError,
+					Message: "Internal Server Error",
+					Data:    map[string]interface{}{"data": err.Error()},
+				},
+			)
+			return
+		}
+
+		g.JSON(
+			http.StatusOK,
+			responses.ProductResponse{
+				Status:  http.StatusOK,
+				Message: "OK",
+				Data:    map[string]interface{}{"data": product},
+			},
+		)
+	}
+}
+
+func FindProductByName() gin.HandlerFunc {
+	return func(g *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		productName := g.Param("name")
+		var product models.Product
+		defer cancel()
+
+		err := productCollection.FindOne(ctx, bson.M{"name": productName}).Decode(&product)
 		if err != nil {
 			g.JSON(
 				http.StatusInternalServerError,
