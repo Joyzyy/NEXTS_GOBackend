@@ -98,7 +98,7 @@ func GetAllProductsByCategory(g *gin.Context, ctx context.Context, products []mo
 		return
 	}
 
-	if err := cursor.All(ctx, &products); err != nil {
+	if err = cursor.All(ctx, &products); err != nil {
 		g.JSON(
 			http.StatusInternalServerError,
 			responses.ProductResponse{
@@ -120,17 +120,13 @@ func GetAllProductsByCategory(g *gin.Context, ctx context.Context, products []mo
 	)
 }
 
-// @TODO: Sort by category + price + the others.
-
 func GetAllProductsByPrice(g *gin.Context, ctx context.Context, products []models.Product, priceQuery string) {
 	price, _ := strconv.Atoi(priceQuery)
 
-	var cursor *mongo.Cursor
-	var err error
-	var filter bson.M
+	filter := bson.M{"price": price}
 	var opts *options.FindOptions
 
-	if optsQuery := g.Query("order"); optsQuery != "" {
+	if optsQuery := g.Query("ord"); optsQuery != "" {
 		if optsQuery == "asc" {
 			opts = options.Find().SetSort(bson.M{"price": 1})
 		} else if optsQuery == "desc" {
@@ -141,21 +137,74 @@ func GetAllProductsByPrice(g *gin.Context, ctx context.Context, products []model
 	}
 
 	if priceTypeQuery := g.Query("type"); priceTypeQuery != "" {
-		if categoryQuery := g.Query("category"); categoryQuery != "" {
-			if priceTypeQuery == "gte" {
-				filter = bson.M{"price": bson.M{"$gte": price}, "category": categoryQuery}
-			} else if priceTypeQuery == "lte" {
-				filter = bson.M{"price": bson.M{"$lte": price}, "category": categoryQuery}
-			}
+		if priceTypeQuery == "gte" {
+			filter = bson.M{"price": bson.M{"$gte": price}}
 		} else {
-			if priceTypeQuery == "gte" {
-				filter = bson.M{"price": bson.M{"$gte": price}}
-			} else if priceTypeQuery == "lte" {
-				filter = bson.M{"price": bson.M{"$lte": price}}
-			}
+			filter = bson.M{"price": bson.M{"$lte": price}}
+		}
+	}
+
+	cursor, err := productCollection.Find(ctx, filter, opts)
+	if err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	if err = cursor.All(ctx, &products); err != nil {
+		g.JSON(
+			http.StatusInternalServerError,
+			responses.ProductResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+				Data:    map[string]interface{}{"data": err.Error()},
+			},
+		)
+		return
+	}
+
+	g.JSON(
+		http.StatusOK,
+		responses.ProductResponse{
+			Status:  http.StatusOK,
+			Message: "OK",
+			Data:    map[string]interface{}{"data": products},
+		},
+	)
+}
+
+func GetAllProductsByCategoryAndPrice(g *gin.Context, ctx context.Context, products []models.Product, categoryQuery string, priceQuery string) {
+	price, _ := strconv.Atoi(priceQuery)
+
+	var cursor *mongo.Cursor
+	var err error
+	var filter bson.M
+	var opts *options.FindOptions
+
+	if optsQuery := g.Query("ord"); optsQuery != "" {
+		if optsQuery == "asc" {
+			opts = options.Find().SetSort(bson.M{"price": 1})
+		} else if optsQuery == "desc" {
+			opts = options.Find().SetSort(bson.M{"price": -1})
 		}
 	} else {
-		filter = bson.M{"price": price}
+		opts = nil
+	}
+
+	filter = bson.M{"price": price, "category": categoryQuery}
+
+	if priceTypeQuery := g.Query("type"); priceTypeQuery != "" {
+		if priceTypeQuery == "gte" {
+			filter = bson.M{"price": bson.M{"$gte": price}, "category": categoryQuery}
+		} else {
+			filter = bson.M{"price": bson.M{"$lte": price}, "category": categoryQuery}
+		}
 	}
 
 	cursor, err = productCollection.Find(ctx, filter, opts)
@@ -171,7 +220,7 @@ func GetAllProductsByPrice(g *gin.Context, ctx context.Context, products []model
 		return
 	}
 
-	if err := cursor.All(ctx, &products); err != nil {
+	if err = cursor.All(ctx, &products); err != nil {
 		g.JSON(
 			http.StatusInternalServerError,
 			responses.ProductResponse{
@@ -197,17 +246,17 @@ func GetAllProducts() gin.HandlerFunc {
 	return func(g *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		var products []models.Product
-		//categoryQuery := g.Query("category")
+		categoryQuery := g.Query("category")
 		priceQuery := g.Query("price")
 		defer cancel()
 
-		/*
-			if categoryQuery != "" {
-				GetAllProductsByCategory(g, ctx, products, categoryQuery)
-				return
-			}*/
-
-		if priceQuery != "" {
+		if categoryQuery != "" && priceQuery == "" {
+			GetAllProductsByCategory(g, ctx, products, categoryQuery)
+			return
+		} else if categoryQuery != "" && priceQuery != "" {
+			GetAllProductsByCategoryAndPrice(g, ctx, products, categoryQuery, priceQuery)
+			return
+		} else if categoryQuery == "" && priceQuery != "" {
 			GetAllProductsByPrice(g, ctx, products, priceQuery)
 			return
 		}
